@@ -1,0 +1,38 @@
+version: '2.3'
+
+services:
+    gateway:
+      build:
+        context: .
+        dockerfile: docker/gateway.Dockerfile
+        args:
+          - CAMERA_RTSP_URL=${CAMERA_RTSP_URL}
+#      ports:
+#        - "8100:8100"
+      volumes:
+        - ${PWD}:/app
+      networks:
+        jeeai-qr-scanner:
+          aliases:
+            - gateway
+      working_dir: /app
+      entrypoint: ["python", "gateway.py"]
+#      restart: always
+
+    receive_api:
+      build:
+        context: .
+        dockerfile: docker/receive_api.Dockerfile
+      ports:
+        - "8200:8200"
+      volumes:
+        - ${PWD}:/app
+      networks:
+        jeeai-qr-scanner:
+          aliases:
+            - receive_api
+      working_dir: /app
+      entrypoint: ["python", "receive_api.py"]
+networks:
+    jeeai-qr-scanner:
+      external: true
