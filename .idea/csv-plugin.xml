@@ -17,6 +17,27 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/multi_camera.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="&#9;" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/multi_gateway.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="&#9;" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/multi_qr_scanner.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="&#9;" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/qr_scanner.py">
           <value>
             <Attribute>

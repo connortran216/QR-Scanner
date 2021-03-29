@@ -30,7 +30,7 @@ RUN apt install -y libgl1-mesa-glx
 RUN apt-get install ffmpeg libsm6 libxext6  -y
 RUN apt-get update && \
     apt-get install -y build-essential libzbar-dev
-RUN apt-get install -y qt5-default
+
 
 COPY . /app
 ADD ./requirements.txt requirements.txt

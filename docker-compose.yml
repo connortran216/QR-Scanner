@@ -19,20 +19,20 @@ services:
       entrypoint: ["python", "gateway.py"]
 #      restart: always
 
-    receive_api:
-      build:
-        context: .
-        dockerfile: docker/receive_api.Dockerfile
-      ports:
-        - "8200:8200"
-      volumes:
-        - ${PWD}:/app
-      networks:
-        jeeai-qr-scanner:
-          aliases:
-            - receive_api
-      working_dir: /app
-      entrypoint: ["python", "receive_api.py"]
+#    receive_api:
+#      build:
+#        context: .
+#        dockerfile: docker/receive_api.Dockerfile
+#      ports:
+#        - "8200:8200"
+#      volumes:
+#        - ${PWD}:/app
+#      networks:
+#        jeeai-qr-scanner:
+#          aliases:
+#            - receive_api
+#      working_dir: /app
+#      entrypoint: ["python", "receive_api.py"]
 networks:
     jeeai-qr-scanner:
       external: true

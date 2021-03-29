@@ -12,7 +12,7 @@ class camera():
 		#load pipe for data transmittion to the process
 		self.parent_conn, child_conn = mp.Pipe()
 		#load process
-		self.p = mp.Process(target=self.update, args=(child_conn,rtsp_url))
+		self.p = mp.Process(target=self.update, args=(child_conn, rtsp_url))
 		#start process
 		self.p.daemon = True
 		self.p.start()
@@ -27,6 +27,7 @@ class camera():
 
 		logger.info("Cam Loading...")
 		cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+		# cap = cv2.VideoCapture(0)
 		logger.info("Cam Loaded...")
 		run = True
 
@@ -73,5 +74,5 @@ class camera():
 			return frame
 
 
-	def rescale_frame(self,frame, percent=65):
+	def rescale_frame(self,frame, percent=30):
 		return cv2.resize(frame, None, fx=percent, fy=percent)
