@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
-from multi_camera import camera
+# from multi_camera import camera
+from test_cam import camera
 from multi_qr_scanner import decoder, Consumer, Task
 import requests
 import multiprocessing as mp
@@ -8,12 +9,10 @@ from utils.logger import get_logger
 
 import multiprocessing
 import time
-import chime
-
-
 
 global db
 db = []
+
 
 def return_qr(data, camera_name):
 	# Check QR code in DB
@@ -77,7 +76,7 @@ if __name__ == "__main__":
 		result_list.append(result)
 
 		# Start consumers
-		num_consumers = 8  # multiprocessing.cpu_count() * 2
+		num_consumers = 1  # multiprocessing.cpu_count() * 2
 		print('Creating %d consumers' % num_consumers)
 
 		consumer = [Consumer(task, result)
@@ -136,27 +135,27 @@ if __name__ == "__main__":
 
 			if data_list[i] is not None:
 				"""DETECT QRCODE"""
-				# points = data_list[i][2]
-				# pts = np.array(points, np.int32)
-				# pts = pts.reshape((-1, 1, 2))
-				# cv2.polylines(frame_list[i], [pts], True, (0, 255, 0), 3)
-				#
-				# barcodeData = data_list[i][0]
-				# barcodeType = data_list[i][1]
-				# string = "Detected QR"
-				# cv2.putText(frame_list[i], string, (int(data_list[i][-1]), int(data_list[i][-2])), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+				points = data_list[i][2]
+				pts = np.array(points, np.int32)
+				pts = pts.reshape((-1, 1, 2))
+				cv2.polylines(frame_list[i], [pts], True, (0, 255, 0), 3)
 
-				multiprocessing.Process(target = return_qr, args = (data_list[i][0], camera_list[i]))
-				chime.success(sync=True, raise_error=True)
+				barcodeData = data_list[i][0]
+				barcodeType = data_list[i][1]
+				string = "Detected QR"
+				cv2.putText(frame_list[i], string, (int(data_list[i][-1]), int(data_list[i][-2])), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+
+				return_qr(data_list[i][0], camera_list[i])
 
 			### FPS
 			curTime = time.time()
 			sec = curTime - prevTime
 			fps = 1 / (sec)
 			str = "FPS : %0.1f" % fps
-			# cv2.putText(frame_list[i], str, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
-			# cv2.imshow(f"Cam--{i}", frame_list[i])
 			print(str)
+			cv2.putText(frame_list[i], str, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
+			cv2.imshow(f"Cam--{i}", frame_list[i])
+
 		prevTime = curTime
 
 		# # Process task cam0
@@ -224,7 +223,7 @@ if __name__ == "__main__":
 		# 	return_qr(data1[0], camera1_name)
 
 
-		key = cv2.waitKey(10)
+		key = cv2.waitKey(1)
 		# if key == ord('q'):
 		# 	for task in range(0, num_consumers):
 		# 		tasks_cam0.put(None)
