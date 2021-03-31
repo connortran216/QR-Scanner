@@ -1,78 +1,100 @@
-import cv2
-import numpy as np
-# from multi_camera import camera
 from test_camera import camera
 import requests
-import multiprocessing as mp
 from utils.logger import get_logger
-
-import multiprocessing
-import time
+import multiprocessing as mp
+import sys
+import chime
 
 global db
-db = []
 
 
-def return_qr(data, camera_name):
-	# Check QR code in DB
-	if data is not None:
-		if data not in db:
-			db.append(data)
-			if len(db) >= 1000:
-				del db[:-100]
-			print(data)
-			# return data
-			# barcodeData = data[0]
-			# logger.info(f"Barcode: {barcodeData}")
-			#
-			# # Send result by API
-			# code_data = list(barcodeData.split(","))
-			#
-			# # url = "http://receive_api:8200/qr_receive/"
-			# url = "http://api-lq.bookve.com.vn/api/qr-code/save"
-			# headers = {
-			# 	"token": "95003e12-f3a1-4717-aeda-bdc0e058400d"
-			# }
-			# data = {
-			# 	"maphieu": str(code_data[1]),
-			# 	"mahang": str(code_data[0]),
-			# 	"soluong": str(code_data[2]),
-			# 	"tencamera": camera_name
-			# }
-			#
-			# res = requests.request("POST", url, headers=headers, data=data)
-			# logger.info(res)
+# def check_data(data):
+# 	db = []
+# 	# Check QR code in DB
+# 	if data is not None:
+# 		if data not in db:
+# 			db.append(data)
+# 			if len(db) >= 1000:
+# 				del db[:-100]
+# 			logger.info(f"{db}")
+# 			return True
+# 		else:
+# 			return False
+
+class send_result():
+	def __init__(self, url, token, result_queue, camera_name):
+		self.result_queue = result_queue
+		self.camera_name = camera_name
+		self.url = url
+		self.token = token
+		self.start_send_result()
+
+	@staticmethod
+	def check_data(data):
+		# Check QR code in DB
+		if data is not None:
+			if data not in db:
+				db.append(data)
+				if len(db) >= 1000:
+					del db[:-100]
+				logger.info(f"{db}")
+				return True
+			else:
+				return False
+
+	def return_qr(self, url, token, camera_name):
+		while 1:
+			try:
+				data = self.result_queue.get()
+				# logger.info(f"Data: {data}")
+
+				if self.check_data(data):
+				# if check_data(data):
+					chime.success(sync=True, raise_error=True)
+					# barcodeData = data[0]
+					# logger.info(f"Barcode: {barcodeData}")
+					#
+					# # Send result by API
+					# code_data = list(barcodeData.split(","))
+					# headers = {
+					# 	"token": self.token
+					# }
+					# data = {
+					# 	"maphieu": str(code_data[1]),
+					# 	"mahang": str(code_data[0]),
+					# 	"soluong": str(code_data[2]),
+					# 	"tencamera": self.camera_name
+					# }
+					#
+					# res = requests.request("POST", self.url, headers=headers, data=data)
+					# logger.info(res)
+				else:
+					pass
+
+			except KeyboardInterrupt:
+				logger.info("Kill all Processes Result Data")
+				sys.exit(1)
+
+	def start_send_result(self):
+		# load process
+		p = mp.Process(target=self.return_qr, args=(self.url, self.token, self.camera_name))
+		p.start()
 
 if __name__ == "__main__":
 	logger = get_logger('JFA REST Server Gateway')
 
-	# logger.info(f"RTSP_URL: {os.environ.get('CAMERA_RTSP_URL')}")
-	# rtsp_url = os.environ.get('CAMERA_RTSP_URL', 'rtsp://admin:123456ab@192.168.23.101:554/Streaming/Channels/101')
-	# camera_name = rtsp_url.split('@')[1]
+	# Init Process Camera
+	cam0 = camera("rtsp://admin:123456ab@192.168.23.105:554/Streaming/Channels/101", "CAMERA0", 2)
+	cam1 = camera("rtsp://admin:123456ab@192.168.23.106:554/Streaming/Channels/101", "CAMERA1", 2)
+	# cam1 = camera(0, "WEBCAM", 2)
 
-	# Init camera process
-	# Cam 0
-	cam0 = camera("rtsp://admin:123456ab@192.168.23.101:554/Streaming/Channels/101", "cam0", 2)
-	# logger.info(f"Camera is alive?: {cam0.p.is_alive()} ---- Camera's ID: {cam0.id}")
-	camera0_name = cam0.id
+	# Init Process Return Data
+	url = "http://localhost:8200/qr_receive/"
+	# url = "http://api-lq.bookqve.com.vn/api/qr-code/save"
+	token = "95003e12-f3a1-4717-aeda-bdc0e058400d"
+	r0 = send_result(url, token, cam0.result, "CAMERA0")
+	r1 = send_result(url, token, cam1.result, "CAMERA1")
 
-	# # Cam 1
-	# cam1 = camera(0, "cam1", 2)
-	# # logger.info(f"Camera is alive?: {cam1.p.is_alive()} ---- Camera's ID: {cam1.id}")
-	# camera1_name = cam1.id
 
-	# camera_list = [camera0_name, camera1_name]
-
-	# Video capture
-	# data0 = cam0.get_frame(0.50)
-	# data1 = cam1.get_frame()
-	# p0 = mp.Process(target=cam0.get_frame(), args=())
-	# # p1 = mp.Process(target=cam1.get_frame(), args=())
-	#
-	# p0.start()
-	# # p1.start()
-	#
-	# p0.join()
-	# # p1.join()
 
 
