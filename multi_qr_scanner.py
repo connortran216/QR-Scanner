@@ -17,64 +17,82 @@ logger = get_logger('JFA REST Server Gateway')
 import multiprocessing
 import time
 
-class Consumer(multiprocessing.Process):
 
-	def __init__(self, task_queue, result_queue):
+class QR_Scanner(multiprocessing.Process):
+	def __init__(self, task_queue, result_queue, camera_id):
 		multiprocessing.Process.__init__(self)
+		self.camera_id = camera_id
 		self.task_queue = task_queue
 		self.result_queue = result_queue
 
-	def run(self):
-		proc_name = self.name
-		while True:
-			next_task = self.task_queue.get()
-			if next_task is None:
-				# Poison pill means we should exit
-				print('%s: Exiting' % proc_name)
-				break
-			# print('%s: %s' % (proc_name, next_task))
-			answer = next_task()
-			self.result_queue.put(answer)
-		return
-
-
-class Task(object):
-	def __init__(self, image):
-		self.image = image
-
-	def __call__(self):
-		# time.sleep(0.1) # pretend to take some time to do our work
-		gray_img = cv2.cvtColor(self.image, 0)
-
-		# box = detect(self.image)
-		# roi_corners = np.array([box], dtype=np.int32)
-		# gray_img = cv2.polylines(self.image, roi_corners, 1, (255, 0, 0), 3)
-
+	@staticmethod
+	def decode(image):
+		gray_img = cv2.cvtColor(image, 0)
 		barcode = decode(gray_img, symbols=[ZBarSymbol.QRCODE])
-
 		for obj in barcode:
 			"""DETECT QRCODE"""
 			points = obj.polygon
 			(x, y, w, h) = obj.rect
-			# pts = np.array(points, np.int32)
-			# pts = pts.reshape((-1, 1, 2))
-			# cv2.polylines(self.image, [pts], True, (0, 255, 0), 3)
-
 			"""EXTRACT QRCODE INFO"""
 			barcodeData = obj.data.decode("utf-8")
 			barcodeType = obj.type
-			# string = "Data " + str(barcodeData) + " | Type " + str(barcodeType)
-
-			# cv2.putText(self.image, string, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
-
-			# print("Barcode: " + barcodeData + " | Type: " + barcodeType)
 			data = [barcodeData, barcodeType, points, x, y]
-
+			logger.info(data)
 			return data
 
-	def __str__(self):
-		return "Scanning.."
+	def run(self):
+		proc_name = self.name
+		while True:
+			try:
+				prevTime = time.time()
+				next_frame = self.task_queue.get()
+				# print('%s: %s' % (proc_name, next_task))
+				answer = self.decode(next_frame)
+				self.result_queue.put(answer)
+				## FPS
+				logger.info(f"{self.camera_id} - FPS: {1 / (time.time() - prevTime): .4f}")
+			except Exception as ex:
+				logger.error(ex)
 
+
+#
+# class Task(object):
+# 	def __init__(self, image):
+# 		self.image = image
+#
+# 	def __call__(self):
+# 		# time.sleep(0.1) # pretend to take some time to do our work
+# 		gray_img = cv2.cvtColor(self.image, 0)
+#
+# 		# box = detect(self.image)
+# 		# roi_corners = np.array([box], dtype=np.int32)
+# 		# gray_img = cv2.polylines(self.image, roi_corners, 1, (255, 0, 0), 3)
+#
+# 		barcode = decode(gray_img, symbols=[ZBarSymbol.QRCODE])
+#
+# 		for obj in barcode:
+# 			"""DETECT QRCODE"""
+# 			points = obj.polygon
+# 			(x, y, w, h) = obj.rect
+# 			# pts = np.array(points, np.int32)
+# 			# pts = pts.reshape((-1, 1, 2))
+# 			# cv2.polylines(self.image, [pts], True, (0, 255, 0), 3)
+#
+# 			"""EXTRACT QRCODE INFO"""
+# 			barcodeData = obj.data.decode("utf-8")
+# 			barcodeType = obj.type
+# 			# string = "Data " + str(barcodeData) + " | Type " + str(barcodeType)
+#
+# 			# cv2.putText(self.image, string, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+#
+# 			# print("Barcode: " + barcodeData + " | Type: " + barcodeType)
+# 			data = [barcodeData, barcodeType, points, x, y]
+#
+# 			return data
+#
+# 	def __str__(self):
+# 		return "Scanning.."
+#
 
 # if __name__ == '__main__':
 # 	# Establish communication queues
