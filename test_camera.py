@@ -1,17 +1,26 @@
 import cv2
 import multiprocessing as mp
-from pyzbar.pyzbar import decode
+# from pyzbar.pyzbar import decode
 from pyzbar.pyzbar import ZBarSymbol
+import pyboof as pb
+import numpy as np
 import time
-from multi_qr_scanner import QR_Scanner
+
+from yolo_tiny_model import postprocess, Detector
 
 from utils.logger import get_logger
+
 logger = get_logger('Init Camera')
 import sys
 
-class camera():
-	def __init__(self, rtsp_url, id, num_process=1):
-		self.id = id
+# QRCodeDetector
+# qrResult = ''
+# pb.init_memmap()
+# detector = pb.FactoryFiducial(np.uint8).qrcode()
+
+class Camera:
+	def __init__(self, rtsp_url, id_, num_process=1):
+		self.id = id_
 		self.rtsp_url = rtsp_url
 
 		self.task = mp.Queue()
@@ -21,34 +30,71 @@ class camera():
 		self.init_qr_scanner(num_process)
 
 	@staticmethod
-	def decode(image):
-		gray_img = cv2.cvtColor(image, 0)
-		barcode = decode(gray_img, symbols=[ZBarSymbol.QRCODE])
-		try:
-			for obj in barcode:
-				"""EXTRACT QRCODE INFO"""
-				barcodeData = obj.data.decode("utf-8")
-				barcodeType = obj.type
-				data = [barcodeData, barcodeType]
+	def qr_decoder(image, scanner, detector):
 
-				return data
+		# gray_img = cv2.cvtColor(image, 0)
+		# barcode = decode(gray_img, symbols=[ZBarSymbol.QRCODE])
+		#
+		# # outs = Detector.detector.detect_qr(image)
+		# # cropped_image = postprocess(image, outs)
+		# # gray_img = cv2.cvtColor(cropped_image, 0)
+		# # barcode = decode(cropped_image, symbols=[ZBarSymbol.QRCODE])
+		#
+		# try:
+		# 	for obj in barcode:
+		# 		"""EXTRACT QRCODE INFO"""
+		# 		barcodeData = obj.data.decode("utf-8")
+		# 		barcodeType = obj.type
+		# 		data = [barcodeData, barcodeType]
+		# 		logger.info(f"QR CODE ----- {data}")
+		# 		return data
+		# except Exception as ex:
+		# 	logger.error(ex)
+
+		try:
+			# # QR Code Detector:
+			outs = detector.detect_qr(image)
+			cropped_image = postprocess(image, outs)
+
+			if cropped_image is not None:
+				# # QR Scanner:
+				frame_mono = cv2.cvtColor(np.uint8(cropped_image), cv2.COLOR_BGR2GRAY)
+				boof_img = pb.ndarray_to_boof(frame_mono)
+				scanner.detect(boof_img)
+				if len(scanner.detections) > 0:
+					qrResult = scanner.detections[0].message
+					logger.info(f"QR CODE ----- {qrResult}")
+					return qrResult
+			else:
+				return None
+
+
 		except Exception as ex:
 			logger.error(ex)
 
+
 	def run(self):
+		i = 0
+		scanner = pb.FactoryFiducial(np.uint8)
+		scanner = scanner.qrcode()
+
+		detector = Detector()
+
 		while True:
 			try:
 				# time.sleep(1)
 				prevTime = time.time()
 				next_frame = self.task.get()
-				data = self.decode(next_frame)
-				# logger.info(f"\ndata --- {data}")
+				data = self.qr_decoder(next_frame, scanner, detector)
+				# self.result.put(data)
 
-				self.result.put(data)
-				# logger.info(f"data --- {self.result.get()}")
-
-				## FPS
-				# logger.info(f"{self.id} - FPS: {1 / (time.time() - prevTime): .4f}")
+				i += 1
+				if data is not None:
+					cv2.imwrite('frames_qr/{index}.png'.format(index=i), next_frame)
+				else:
+					cv2.imwrite('frames_non_qr/{index}.png'.format(index=i), next_frame)
+			## FPS
+			# logger.info(f"{self.id} - FPS: {1 / (time.time() - prevTime): .4f}")
 			# except Exception as ex:
 			# 	logger.error(ex)
 			except KeyboardInterrupt:
@@ -61,6 +107,7 @@ class camera():
 		logger.info(f"{id} Loaded...")
 
 		try:
+			# i=0
 			while True:
 				# time.sleep(1)
 				ret, frame = cap.read()
@@ -68,19 +115,27 @@ class camera():
 				# logger.info(f" {id} {task.qsize()}")
 				if task.qsize() == 20:
 					task.get()
+				# cv2.imshow("TEST", frame)
+
+		# i += 1
+		# cv2.imwrite('frames/{index}.png'.format(index=i), frame)
+
 		except KeyboardInterrupt:
 			logger.info("Kill all Processes Camera")
 			sys.exit(1)
 
-		cap.release()
-		logger.info("Camera Connection Closed")
+			cap.release()
+			logger.info("Camera Connection Closed")
 
 	def init_qr_scanner(self, num_process):
-		for i in range(num_process):
-			exec(f'proc{self.id}_{i} = mp.Process(target=self.run)')
-			# exec(f"proc_{i}.daemon = True")
-			exec(f'proc{self.id}_{i}.start()')
-			# logger.info(f"Process -- proc_{i}")
+		for _ in range(num_process):
+			p = mp.Process(target=self.run)
+			p.start()
+			# exec(f'proc{self.id}_{i} = mp.Process(target=self.run)')
+			# # exec(f"proc_{i}.daemon = True")
+			# exec(f'proc{self.id}_{i}.start()')
+
+	# logger.info(f"Process -- proc_{i}")
 
 	def start_stream_camera(self):
 		# load process
@@ -88,13 +143,11 @@ class camera():
 		p.start()
 
 
+if __name__ == "__main__":
 
-# if __name__ == "__main__":
-# 	cam0 = camera("rtsp://admin:123456ab@192.168.23.101:554/Streaming/Channels/101", "CAMERA", 2)
-# 	cam1 = camera(0, "WEBCAM", 2)
-#
+	cam0 = Camera("rtsp://admin:123456ab@192.168.23.105:554/Streaming/Channels/101", "CAMERA0", 1)
+	# cam1 = Camera("rtsp://admin:123456ab@192.168.23.106:554/Streaming/Channels/101", "CAMERA1", 5)
+# #
 # 	url = "http://localhost:8200/qr_receive/"
 # 	# url = "http://api-lq.bookqve.com.vn/api/qr-code/save"
 # 	token = "95003e12-f3a1-4717-aeda-bdc0e058400d"
-
-

@@ -1,12 +1,11 @@
-from test_camera import camera
-import requests
+from test_camera import Camera
 from utils.logger import get_logger
 import multiprocessing as mp
 import sys
 import chime
 
 global db
-
+db = []
 
 # def check_data(data):
 # 	db = []
@@ -84,16 +83,16 @@ if __name__ == "__main__":
 	logger = get_logger('JFA REST Server Gateway')
 
 	# Init Process Camera
-	cam0 = camera("rtsp://admin:123456ab@192.168.23.105:554/Streaming/Channels/101", "CAMERA0", 2)
-	cam1 = camera("rtsp://admin:123456ab@192.168.23.106:554/Streaming/Channels/101", "CAMERA1", 2)
+	cam0 = Camera("rtsp://admin:123456ab@192.168.23.105:554/Streaming/Channels/101", "CAMERA0", 4)
+	# cam1 = camera("rtsp://admin:123456ab@192.168.23.106:554/Streaming/Channels/101", "CAMERA1", 4)
 	# cam1 = camera(0, "WEBCAM", 2)
 
 	# Init Process Return Data
 	url = "http://localhost:8200/qr_receive/"
 	# url = "http://api-lq.bookqve.com.vn/api/qr-code/save"
 	token = "95003e12-f3a1-4717-aeda-bdc0e058400d"
-	r0 = send_result(url, token, cam0.result, "CAMERA0")
-	r1 = send_result(url, token, cam1.result, "CAMERA1")
+	# r0 = send_result(url, token, cam0.result, "CAMERA0")
+	# r1 = send_result(url, token, cam1.result, "CAMERA1")
 
 
 
