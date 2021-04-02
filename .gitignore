@@ -1,7 +1,8 @@
 # Don't track content of these folders
 venv/
-test_set/
-training_set/
+frames_non_qr/
+frames_qr/
+YOLO-TINY_QR/
 
 # Compiled source #
 ###################
@@ -11,7 +12,8 @@ training_set/
 *.exe
 *.o
 *.so
-
+*.xml
+*.iml
 *.csv
 *.png
 *.jpg
